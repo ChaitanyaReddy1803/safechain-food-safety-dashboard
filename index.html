@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SafeChain Food Safety Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0; padding: 0;
+    }
+    .banner {
+      text-align: center;
+      margin: 30px 0 14px 0;
+    }
+    .banner img {
+      width: 320px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 18px;
+      box-shadow: 0 6px 24px #0002;
+    }
+    .banner-desc {
+      color: #555;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.3em;
+      margin-bottom: 22px;
+    }
+    .dashboard {
+      background: #fff;
+      padding: 28px 22px 24px 22px;
+      max-width: 440px;
+      margin: 0 auto 50px auto;
+      border-radius: 24px;
+      box-shadow: 0 2px 12px #0001;
+      transition: background 0.5s;
+      position: relative;
+    }
+    #alert-banner {
+      display: none;
+      background: #fd3131;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      padding: 13px 0 10px 0;
+      text-align: center;
+      letter-spacing: 0.5px;
+      font-size: 1.05em;
+      align-items: center;
+      justify-content: center;
+    }
+    #alert-banner span {
+      font-size: 1.3em;
+      vertical-align: -3px;
+      margin-right: 6px;
+    }
+    .status-badge {
+      display: inline-block;
+      margin-bottom: 12px;
+      border-radius: 16px;
+      padding: 8px 20px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1.05em;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 9px #0003;
+    }
+    .status-badge.safe {
+      background: #28a745;
+    }
+    .status-badge.caution {
+      background: #ffc107;
+      color: #333;
+    }
+    .status-badge.unsafe {
+      background: #dc3545;
+    }
+    .metrics {
+      margin-bottom: 20px;
+    }
+    .metrics p {
+      font-size: 19px;
+      margin: 9px 0;
+      display: flex;
+      align-items: center;
+    }
+    .metrics img.metric-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 12px;
+      vertical-align: middle;
+    }
+    .metrics img.extra-icon {
+      width: 22px;
+      height: 22px;
+      margin-left: 8px;
+      border-radius: 3px;
+    }
+    .threshold-section {
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+    .threshold-section input {
+      width: 60px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 3px 6px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.25s;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #message {
+      margin-top: 14px;
+      font-weight: 600;
+      font-size: 1rem;
+      color: green;
+      min-height: 24px;
+      text-align: center;
+    }
+    #trendChart {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 3px 11px #0002;
+      margin-top: 30px;
+      display: block;
+      max-width: 440px;
+      width: 100%;
+      height: 180px;
+    }
+    @media (max-width: 600px) {
+      .dashboard {
+        width: 95vw;
+        padding: 20px 18px 20px 18px;
+      }
+      .banner img {
+        width: 90vw;
+        height: auto;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <!-- Replace with any food safety-related image if desired -->
+    <img src="https://images.unsplash.com/photo-1556745757-c320fabfdd4?crop=entropy&fit=crop&w=800&q=80" alt="Food safety scene" loading="lazy" />
+    <div class="banner-desc">Safe Food Monitoring Laboratory</div>
+  </div>
+
+  <h1>SafeChain Food Safety Dashboard</h1>
+  
+  <div class="dashboard" id="dashboard-box">
+    <div id="alert-banner"><span>⚠️</span>HIGH CONTAMINATION RISK! TAKE ACTION!</div>
+    <div id="statusBadge" class="status-badge safe">Safe</div>
+    
+    <div class="metrics">
+      <p id="temp"><img class="metric-icon" src="https://cdn-icons-png.flaticon.com/128/4149/4149646.png" alt="Temperature Icon" /> Temperature: -- °C <img class="extra-icon" src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Thermometer_icon.svg" alt="Thermometer" title="Thermometer" /></p>
+      <p id="humidity"><img class="metric-icon" src="https://cdn-icons-png.flaticon.com/128/728/728093.png" alt="Humidity Icon" /> Humidity: -- % <img class="extra-icon" src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Water_drop_icon.svg" alt="Humidity" title="Humidity%" /></p>
+      <p id="risk"><img class="metric-icon" src="https://cdn-icons-png.flaticon.com/128/1828/1828843.png" alt="Risk Icon" /> Contamination Risk: -- % <img class="extra-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Safety_warning_symbol_icon.svg" alt="Hazard Icon" title="Contamination Risk" /></p>
+    </div>
+    <p id="time">Last Update: --</p>
+    
+    <div class="threshold-section">
+      Alert threshold: <input id="thresholdInput" type="number" min="1" max="100" value="66" aria-label="Alert threshold percentage"> % (change → triggers warning above)
+    </div>
+
+    <button id="recordBtn" disabled>Record Data on Blockchain</button>
+    <button id="downloadBtn">Download Data as CSV</button>
+    <p id="message"></p>
+
+    <canvas id="trendChart" role="img" aria-label="Sensor data trends"></canvas>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const tempEl = document.getElementById("temp");
+    const humidityEl = document.getElementById("humidity");
+    const riskEl = document.getElementById("risk");
+    const timeEl = document.getElementById("time");
+    const recordBtn = document.getElementById("recordBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const messageEl = document.getElementById("message");
+    const dashboardBox = document.getElementById("dashboard-box");
+    const alertBanner = document.getElementById("alert-banner");
+    const statusBadge = document.getElementById("statusBadge");
+    const thresholdInput = document.getElementById("thresholdInput");
+    const trendChartEl = document.getElementById("trendChart");
+    const ctx = trendChartEl.getContext("2d");
+
+    let currentData = null;
+    let history = [];
+    let alertThreshold = 0.66;
+
+    thresholdInput.addEventListener('input', () => {
+      const val = Number(thresholdInput.value);
+      if (val > 0 && val <= 100) alertThreshold = val / 100;
+    });
+
+    function generateMockData() {
+      return {
+        temperature: 4 + Math.random() * 4,
+        humidity: 70 + Math.random() * 30,
+        contaminationRisk: Math.random(),
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    function updateBackgroundColor(risk) {
+      let bg;
+
+      if (risk < 0.33) {
+        bg = "linear-gradient(135deg, #d2ffd8 0%, #60e18d 100%)";
+      } else if (risk < alertThreshold) {
+        bg = "linear-gradient(135deg, #fffad2 0%, #ffe376 100%)";
+      } else {
+        bg = "linear-gradient(135deg, #ffd6d6 0%, #ff6060 100%)";
+      }
+
+      dashboardBox.style.background = bg;
+    }
+
+    function showAlertBanner(risk) {
+      alertBanner.style.display = risk > alertThreshold ? "flex" : "none";
+    }
+
+    function updateStatusBadge(risk) {
+      if (risk < 0.33) {
+        statusBadge.textContent = "Safe";
+        statusBadge.className = "status-badge safe";
+      } else if (risk < alertThreshold) {
+        statusBadge.textContent = "Caution";
+        statusBadge.className = "status-badge caution";
+      } else {
+        statusBadge.textContent = "Unsafe";
+        statusBadge.className = "status-badge unsafe";
+      }
+    }
+
+    function updateDashboard(data) {
+      tempEl.innerHTML = `<img class="metric-icon" src="https://cdn-icons-png.flaticon.com/128/4149/4149646.png" alt="Temperature Icon" /> Temperature: ${data.temperature.toFixed(2)} °C`;
+      humidityEl.innerHTML = `<img class="metric-icon" src="https://cdn-icons-png.flaticon.com/128/728/728093.png" alt="Humidity Icon" /> Humidity: ${data.humidity.toFixed(2)} %`;
+      riskEl.innerHTML = `<img class="metric-icon" src="https://cdn-icons-png.flaticon.com/128/1828/1828843.png" alt="Risk Icon" /> Contamination Risk: ${(data.contaminationRisk * 100).toFixed(1)} %`;
+      timeEl.textContent = `Last Update: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+      updateStatusBadge(data.contaminationRisk);
+      updateBackgroundColor(data.contaminationRisk);
+      showAlertBanner(data.contaminationRisk);
+
+      recordBtn.disabled = false;
+      messageEl.textContent = "";
+    }
+
+    function loadData() {
+      currentData = generateMockData();
+      history.push({
+        time: new Date(currentData.timestamp).toLocaleTimeString(),
+        temperature: currentData.temperature,
+        humidity: currentData.humidity,
+        contaminationRisk: currentData.contaminationRisk
+      });
+      if (history.length > 10) history = history.slice(-10);
+
+      updateDashboard(currentData);
+      updateChart();
+    }
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: [],
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0,123,255,0.05)',
+            yAxisID: 'y1',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          },
+          {
+            label: 'Humidity (%)',
+            data: [],
+            borderColor: '#00bcd4',
+            backgroundColor: 'rgba(0,188,212,0.05)',
+            yAxisID: 'y2',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          },
+          {
+            label: 'Contamination Risk (%)',
+            data: [],
+            borderColor: '#f44336',
+            backgroundColor: 'rgba(244,67,54,0.1)',
+            yAxisID: 'y3',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          y1: {
+            type: 'linear',
+            position: 'left',
+            min: 0,
+            max: 10,
+            title: {
+              display: true,
+              text: 'Temperature (°C)'
+            }
+          },
+          y2: {
+            type: 'linear',
+            position: 'right',
+            min: 0,
+            max: 100,
+            grid: {
+              drawOnChartArea: false
+            },
+            title: {
+              display: true,
+              text: 'Humidity (%)'
+            }
+          },
+          y3: {
+            type: 'linear',
+            position: 'right',
+            min: 0,
+            max: 100,
+            display: false
+          }
+        }
+      }
+    });
+
+    function updateChart() {
+      chart.data.labels = history.map(h => h.time);
+      chart.data.datasets[0].data = history.map(h => h.temperature);
+      chart.data.datasets[1].data = history.map(h => h.humidity);
+      chart.data.datasets[2].data = history.map(h => h.contaminationRisk * 100);
+      chart.update();
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      let csv = 'Time,Temperature (°C),Humidity (%),Contamination Risk (%)\n';
+      history.forEach(h => {
+        csv += `${h.time},${h.temperature.toFixed(2)},${h.humidity.toFixed(2)},${(h.contaminationRisk * 100).toFixed(1)}\n`;
+      });
+      const blob = new Blob([csv], {type: 'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'food_safety_data.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('recordBtn').addEventListener('click', () => {
+      recordBtn.disabled = true;
+      messageEl.style.color = 'black';
+      messageEl.textContent = 'Recording data...';
+      setTimeout(() => {
+        messageEl.style.color = 'green';
+        messageEl.textContent = 'Data recorded on blockchain (simulated)';
+        recordBtn.disabled = false;
+      }, 1000);
+    });
+
+    loadData();
+    setInterval(loadData, 5000);
+  </script>
+</body>
+</html>
